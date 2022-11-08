@@ -50,6 +50,7 @@ subcommands = [
     "update",
     "revert",
     "depfile",
+    "combine",
 ]
 
 
@@ -767,6 +768,20 @@ def env_depfile(args):
             f.write(makefile)
     else:
         sys.stdout.write(makefile)
+
+
+
+#
+# env combine
+#
+def env_combine_setup_parser(subparser):
+    subparser.add_argument("combine_env", metavar="env", help="combine a group of environments into one")
+    subparser.add_argument(
+        "-n", "--name", dest="name", default="current", help="idk??"
+    )
+
+def env_combine():
+    return True
 
 
 #: Dictionary mapping subcommand names and aliases to functions
