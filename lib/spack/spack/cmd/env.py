@@ -770,17 +770,33 @@ def env_depfile(args):
         sys.stdout.write(makefile)
 
 
-
 #
 # env combine
 #
 def env_combine_setup_parser(subparser):
-    subparser.add_argument("combine_env", metavar="env", help="combine a group of environments into one")
+    """combine multiple environments into one"""
     subparser.add_argument(
-        "-n", "--name", dest="name", default="current", help="idk??"
+        "name", nargs=1, help="name of new environment"
     )
 
-def env_combine():
+    subparser.add_argument(
+        "environments", nargs="+", help="do later"
+    )
+
+
+def env_combine(args):
+    print("args name", args.name)
+    print("args envs", args.environments)
+
+    # args.name doesnt already exist
+
+    # loop through env args
+        # does env exists
+            # do I die if it doesnt
+        # concretize each
+
+    # create new env
+    # put concretized specs in new env
     return True
 
 
