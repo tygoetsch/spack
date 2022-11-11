@@ -30,7 +30,7 @@ class Jellyfish(AutotoolsPackage):
     variant("ruby", default=False, description="Enable ruby bindings")
 
     extends("python@:2.7.18", when="+python")
-    extends("ruby", when="+ruby")
+    extends("ruby@:2.6", when="+ruby")
 
     patch("dna_codes.patch", when="@1.1.11")
 
