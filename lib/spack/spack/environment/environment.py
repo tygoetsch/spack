@@ -727,7 +727,7 @@ class Environment(object):
 
         if os.path.exists(self.lock_path):
             with open(self.lock_path) as f:
-                read_lock_version = self._read_lockfile(f)
+                read_lock_version = self._read_lockfile(f)["_meta"]["lockfile-version"]
             if default_manifest:
                 # No manifest, set user specs from lockfile
                 self._set_user_specs_from_lockfile()
@@ -1949,7 +1949,7 @@ class Environment(object):
         """Read a lockfile from a file or from a raw string."""
         lockfile_dict = sjson.load(file_or_json)
         self._read_lockfile_dict(lockfile_dict)
-        return lockfile_dict["_meta"]["lockfile-version"]
+        return lockfile_dict
 
     def _read_lockfile_dict(self, d):
         """Read a lockfile dictionary into this environment."""
