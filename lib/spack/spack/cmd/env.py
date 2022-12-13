@@ -50,7 +50,6 @@ subcommands = [
     "update",
     "revert",
     "depfile",
-    "combine",
 ]
 
 
@@ -289,7 +288,9 @@ def env_create_setup_parser(subparser):
         default=None,
         help="optional init file; can be spack.yaml or spack.lock",
     )
-
+    subparser.add_argument("--include-concrete", action="append",
+        help="name of old environment to copy specs from")
+        # Check if name provided is a path (try except on root)
 
 def env_create(args):
     if args.with_view:
@@ -304,13 +305,13 @@ def env_create(args):
     if args.envfile:
         with open(args.envfile) as f:
             _env_create(
-                args.create_env, f, args.dir, with_view=with_view, keep_relative=args.keep_relative
+                args.create_env, f, args.dir, with_view=with_view, keep_relative=args.keep_relative, include_concrete=args.include_concrete
             )
     else:
-        _env_create(args.create_env, None, args.dir, with_view=with_view)
+        _env_create(args.create_env, None, args.dir, with_view=with_view, include_concrete=args.include_concrete)
 
 
-def _env_create(name_or_path, init_file=None, dir=False, with_view=None, keep_relative=False):
+def _env_create(name_or_path, init_file=None, dir=False, with_view=None, keep_relative=False, include_concrete=None):
     """Create a new environment, with an optional yaml description.
 
     Arguments:
@@ -324,13 +325,13 @@ def _env_create(name_or_path, init_file=None, dir=False, with_view=None, keep_re
             new environment is in a different location
     """
     if dir:
-        env = ev.Environment(name_or_path, init_file, with_view, keep_relative)
+        env = ev.Environment(name_or_path, init_file, with_view, keep_relative, include_concrete)
         env.write()
         tty.msg("Created environment in %s" % env.path)
         tty.msg("You can activate this environment with:")
         tty.msg("  spack env activate %s" % env.path)
     else:
-        env = ev.create(name_or_path, init_file, with_view, keep_relative)
+        env = ev.create(name_or_path, init_file, with_view, keep_relative, include_concrete)
         env.write()
         tty.msg("Created environment '%s' in %s" % (name_or_path, env.path))
         tty.msg("You can activate this environment with:")
@@ -768,86 +769,6 @@ def env_depfile(args):
             f.write(makefile)
     else:
         sys.stdout.write(makefile)
-
-
-#
-# env combine
-#
-def env_combine_setup_parser(subparser):
-    """combine multiple environments into one"""
-    subparser.add_argument("name", nargs=1, help="name of new environment")
-
-    subparser.add_argument("environments", nargs="+", help="do later")
-
-
-def env_combine(args):
-    # Why is args.name a list
-    name = args.name[0]
-
-    if ev.exists(name):
-        tty.die("'%s': environment already exists" % name)
-
-    new_dict = dict()
-    new_dict["_meta"] = dict()
-    new_dict["root"] = []
-    new_dict["concrete_specs"] = dict()
-
-    new_dict_roots = set()
-    lockfile_meta = None
-
-    for old_env_name in args.environments:
-        if not ev.exists(old_env_name):
-            tty.die("'%s': environment does not exists" % old_env_name)
-
-        # print("--ENV {0}--".format(old_env_name))
-        old_env = ev.Environment(ev.root(old_env_name))
-
-        # Concretize environment and generate spack.lock file
-        old_env.unify = False
-        old_env.concretize(force=False)
-        old_env.write()
-
-        with open(old_env.lock_path) as f:
-            lockfile_as_dict = old_env._read_lockfile(f)
-
-        if lockfile_meta is None:
-            lockfile_meta = lockfile_as_dict["_meta"]
-            new_dict["_meta"] = lockfile_meta
-        elif lockfile_meta != lockfile_as_dict["_meta"]:
-            tty.die("All lockfile _meta values must match")
-
-        # print("ENTIRE DICT:", lockfile_as_dict)
-        # print("---------------\n\n")
-
-        # Copy roots to new dictionary
-        for root_dict in lockfile_as_dict["roots"]:
-            if root_dict["hash"] not in new_dict_roots:
-                new_dict["root"].append(root_dict)
-                new_dict_roots.add(root_dict["hash"])
-
-        # print("---NEW DICT---")
-        # print(new_dict)
-        # print("---------------\n")
-
-        # Copy concrete specs to new dictonary
-        # TODO: Figure out conflicts of having the same package with different specs
-        for key_specs, value in lockfile_as_dict["concrete_specs"].items():
-            if key_specs not in new_dict["concrete_specs"]:
-                new_dict["concrete_specs"][key_specs] = value
-
-    # create new environment
-    _env_create(name)
-
-    # add root specs to new_env's spack.yaml
-    # concretize new environment
-
-    # print("---NEW DICT---")
-    # print(new_dict)
-    # print("---------------\n")
-
-    # turn dict into lock file
-    # create new env with new lock file
-    # put concretized specs in new env _to_lockfile_dict()
 
 
 #: Dictionary mapping subcommand names and aliases to functions

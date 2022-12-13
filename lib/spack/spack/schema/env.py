@@ -91,6 +91,11 @@ schema = {
                         "default": [],
                         "items": {"type": "string"},
                     },
+                    "include_concrete": {
+                        "type": "array",
+                        "default": [],
+                        "items": {"type": "string"},
+                    },
                     "develop": {
                         "type": "object",
                         "default": {},

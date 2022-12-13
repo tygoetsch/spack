@@ -240,12 +240,12 @@ def read(name):
     return Environment(root(name))
 
 
-def create(name, init_file=None, with_view=None, keep_relative=False):
+def create(name, init_file=None, with_view=None, keep_relative=False, include_concrete=None):
     """Create a named environment in Spack."""
     validate_env_name(name)
     if exists(name):
         raise SpackEnvironmentError("'%s': environment already exists" % name)
-    return Environment(root(name), init_file, with_view, keep_relative)
+    return Environment(root(name), init_file, with_view, keep_relative, include_concrete)
 
 
 def config_dict(yaml_data):
@@ -624,7 +624,7 @@ def _create_environment(*args, **kwargs):
 
 
 class Environment(object):
-    def __init__(self, path, init_file=None, with_view=None, keep_relative=False):
+    def __init__(self, path, init_file=None, with_view=None, keep_relative=False, include_concrete=None):
         """Create a new environment.
 
         The environment can be optionally initialized with either a
@@ -646,6 +646,7 @@ class Environment(object):
         self.init_file = init_file
         self.with_view = with_view
         self.keep_relative = keep_relative
+        self.include_concrete = include_concrete
 
         self.txlock = lk.Lock(self._transaction_lock_path)
 
@@ -912,6 +913,44 @@ class Environment(object):
         if self._repo is None:
             self._repo = make_repo_path(self.repos_path)
         return self._repo
+
+
+
+    def included_concrete_config_scopes(self):
+        """List of included environments that will be linked
+
+        Absolute paths to the linked environments in order from highes
+        to lowerest precedence over later ones.
+        """
+
+        # load paths to environment via 'include_concrete'
+        include_concretes = config_dict(self.yaml).get("include_concrete", [])
+
+
+        new_dict = dict()
+        new_dict["_meta"] = dict()
+        new_dict["root"] = []
+        new_dict["concrete_specs"] = dict()
+
+        new_dict_roots = set()
+        lockfile_meta = None
+
+        # loop bckwards
+        for i, env_name in enumerate(reversed(include_concretes)):
+            print("number  :", i)
+            print("env name:", env_name)
+
+            if not exists(env_name):
+                tty.die("'%s': unable to find file" % env_name)
+
+
+            old_env = Envinronment(root(env_name))
+
+            # Concretize environment and generate spack.lock file
+
+            # turn new_dict to json
+            # concretize based off of the json
+
 
     def included_config_scopes(self):
         """List of included configuration scopes from the environment.
@@ -2135,6 +2174,9 @@ class Environment(object):
         else:
             view = False
         yaml_dict["view"] = view
+
+        if self.include_concrete:
+            yaml_dict["include_concrete"] = self.include_concrete
 
         if self.dev_specs:
             # Remove entries that are mirroring defaults
