@@ -624,7 +624,9 @@ def _create_environment(*args, **kwargs):
 
 
 class Environment(object):
-    def __init__(self, path, init_file=None, with_view=None, keep_relative=False, include_concrete=None):
+    def __init__(
+        self, path, init_file=None, with_view=None, keep_relative=False, include_concrete=None
+    ):
         """Create a new environment.
 
         The environment can be optionally initialized with either a
@@ -914,8 +916,6 @@ class Environment(object):
             self._repo = make_repo_path(self.repos_path)
         return self._repo
 
-
-
     def included_concrete_config_scopes(self):
         """List of included environments that will be linked
 
@@ -925,7 +925,6 @@ class Environment(object):
 
         # load paths to environment via 'include_concrete'
         include_concretes = config_dict(self.yaml).get("include_concrete", [])
-
 
         new_dict = dict()
         new_dict["_meta"] = dict()
@@ -943,14 +942,12 @@ class Environment(object):
             if not exists(env_name):
                 tty.die("'%s': unable to find file" % env_name)
 
-
             old_env = Envinronment(root(env_name))
 
             # Concretize environment and generate spack.lock file
 
             # turn new_dict to json
             # concretize based off of the json
-
 
     def included_config_scopes(self):
         """List of included configuration scopes from the environment.

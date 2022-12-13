@@ -288,9 +288,11 @@ def env_create_setup_parser(subparser):
         default=None,
         help="optional init file; can be spack.yaml or spack.lock",
     )
-    subparser.add_argument("--include-concrete", action="append",
-        help="name of old environment to copy specs from")
-        # Check if name provided is a path (try except on root)
+    subparser.add_argument(
+        "--include-concrete", action="append", help="name of old environment to copy specs from"
+    )
+    # Check if name provided is a path (try except on root)
+
 
 def env_create(args):
     if args.with_view:
@@ -305,13 +307,31 @@ def env_create(args):
     if args.envfile:
         with open(args.envfile) as f:
             _env_create(
-                args.create_env, f, args.dir, with_view=with_view, keep_relative=args.keep_relative, include_concrete=args.include_concrete
+                args.create_env,
+                f,
+                args.dir,
+                with_view=with_view,
+                keep_relative=args.keep_relative,
+                include_concrete=args.include_concrete,
             )
     else:
-        _env_create(args.create_env, None, args.dir, with_view=with_view, include_concrete=args.include_concrete)
+        _env_create(
+            args.create_env,
+            None,
+            args.dir,
+            with_view=with_view,
+            include_concrete=args.include_concrete,
+        )
 
 
-def _env_create(name_or_path, init_file=None, dir=False, with_view=None, keep_relative=False, include_concrete=None):
+def _env_create(
+    name_or_path,
+    init_file=None,
+    dir=False,
+    with_view=None,
+    keep_relative=False,
+    include_concrete=None,
+):
     """Create a new environment, with an optional yaml description.
 
     Arguments:
