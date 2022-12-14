@@ -289,10 +289,11 @@ def env_create_setup_parser(subparser):
         help="optional init file; can be spack.yaml or spack.lock",
     )
     subparser.add_argument(
-        "--include-concrete", action="append", help="name of old environment to copy specs from"
+        "--include-concrete",
+        action="append",
+        help="name of old environment to copy specs from"
     )
     # Check if name provided is a path (try except on root)
-
 
 def env_create(args):
     if args.with_view:
