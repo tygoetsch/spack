@@ -730,7 +730,7 @@ class Environment(object):
 
         if os.path.exists(self.lock_path):
             with open(self.lock_path) as f:
-                read_lock_version = self._read_lockfile(f)["_meta"]["lockfile-version"]
+                read_lock_version = self._read_lockfile(f)
             if default_manifest:
                 # No manifest, set user specs from lockfile
                 self._set_user_specs_from_lockfile()
@@ -926,14 +926,6 @@ class Environment(object):
         # load paths to environment via 'include_concrete'
         include_concretes = config_dict(self.yaml).get("include_concrete", [])
 
-        new_dict = dict()
-        new_dict["_meta"] = dict()
-        new_dict["root"] = []
-        new_dict["concrete_specs"] = dict()
-
-        new_dict_roots = set()
-        lockfile_meta = None
-
         # loop bckwards
         for i, env_name in enumerate(reversed(include_concretes)):
             print("number  :", i)
@@ -941,8 +933,6 @@ class Environment(object):
 
             if not exists(env_name):
                 tty.die("'%s': unable to find file" % env_name)
-
-            old_env = Envinronment(root(env_name))
 
             # Concretize environment and generate spack.lock file
 
@@ -1985,7 +1975,7 @@ class Environment(object):
         """Read a lockfile from a file or from a raw string."""
         lockfile_dict = sjson.load(file_or_json)
         self._read_lockfile_dict(lockfile_dict)
-        return lockfile_dict
+        return lockfile_dict["_meta"]["lockfile-version"]
 
     def _read_lockfile_dict(self, d):
         """Read a lockfile dictionary into this environment."""
@@ -2172,8 +2162,13 @@ class Environment(object):
             view = False
         yaml_dict["view"] = view
 
-        if self.include_concrete:
-            yaml_dict["include_concrete"] = self.include_concrete
+        # Rikki Here
+        include_path = []
+        for include in self.include_concrete:
+            include_path.append(root(include))
+
+        if include_path:
+            yaml_dict["include_concrete"] = include_path
 
         if self.dev_specs:
             # Remove entries that are mirroring defaults
