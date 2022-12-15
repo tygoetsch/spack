@@ -924,7 +924,7 @@ class Environment(object):
         """
 
         # load paths to environment via 'include_concrete'
-        #include_concretes = config_dict(self.yaml).get("include_concrete", [])
+        # include_concretes = config_dict(self.yaml).get("include_concrete", [])
 
         # loop bckwards
         include_path = []
@@ -939,7 +939,6 @@ class Environment(object):
         # Concretize environment and generate spack.lock file
 
         return include_path
-
 
     def included_config_scopes(self):
         """List of included configuration scopes from the environment.
@@ -2167,7 +2166,7 @@ class Environment(object):
         # Rikki Here
 
         if self.include_concrete:
-           yaml_dict["include_concrete"] = self.included_concrete_config_scopes()
+            yaml_dict["include_concrete"] = self.included_concrete_config_scopes()
 
         if self.dev_specs:
             # Remove entries that are mirroring defaults
