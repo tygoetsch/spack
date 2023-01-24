@@ -2141,7 +2141,8 @@ class Environment(object):
                     ayl[name][:] = [
                         s
                         for s in ayl.setdefault(name, [])
-                        if (not isinstance(s, str)) or s.startswith("$") or Spec(s) in speclist.specs
+                        if ((not isinstance(s, str)) or s.startswith("$") or
+                            Spec(s) in speclist.specs)
                     ]
 
                 # Put the new specs into the first active list from the yaml
