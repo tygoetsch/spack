@@ -2112,45 +2112,45 @@ class Environment(object):
         """
         # invalidate _repo cache
         self._repo = None
-        # put any changes in the definitions in the YAML
-        for name, speclist in self.spec_lists.items():
-            if name == user_speclist_name:
-                # The primary list is handled differently
-                continue
 
-            active_yaml_lists = [
-                x
-                for x in yaml_dict.get("definitions", [])
-                if name in x and _eval_conditional(x.get("when", "True"))
-            ]
+        if not self.include_concrete:
+            # put any changes in the definitions in the YAML
+            for name, speclist in self.spec_lists.items():
+                if name == user_speclist_name:
+                    # The primary list is handled differently
+                    continue
 
-            # Remove any specs in yaml that are not in internal representation
-            for ayl in active_yaml_lists:
-                # If it's not a string, it's a matrix. Those can't have changed
-                # If it is a string that starts with '$', it's a reference.
-                # Those also can't have changed.
-                ayl[name][:] = [
-                    s
-                    for s in ayl.setdefault(name, [])
-                    if (not isinstance(s, six.string_types))
-                    or s.startswith("$")
-                    or Spec(s) in speclist.specs
+                active_yaml_lists = [
+                    x
+                    for x in yaml_dict.get("definitions", [])
+                    if name in x and _eval_conditional(x.get("when", "True"))
                 ]
 
-            # Put the new specs into the first active list from the yaml
-            new_specs = [
-                entry
-                for entry in speclist.yaml_list
-                if isinstance(entry, six.string_types)
-                and not any(entry in ayl[name] for ayl in active_yaml_lists)
-            ]
-            list_for_new_specs = active_yaml_lists[0].setdefault(name, [])
-            list_for_new_specs[:] = list_for_new_specs + new_specs
-        # put the new user specs in the YAML.
-        # This can be done directly because there can't be multiple definitions
-        # nor when clauses for `specs` list.
-        yaml_spec_list = yaml_dict.setdefault(user_speclist_name, [])
-        yaml_spec_list[:] = self.user_specs.yaml_list
+                # Remove any specs in yaml that are not in internal representation
+                for ayl in active_yaml_lists:
+                    # If it's not a string, it's a matrix. Those can't have changed
+                    # If it is a string that starts with '$', it's a reference.
+                    # Those also can't have changed.
+                    ayl[name][:] = [
+                        s
+                        for s in ayl.setdefault(name, [])
+                        if (not isinstance(s, str)) or s.startswith("$") or Spec(s) in speclist.specs
+                    ]
+
+                # Put the new specs into the first active list from the yaml
+                new_specs = [
+                    entry
+                    for entry in speclist.yaml_list
+                    if isinstance(entry, str)
+                    and not any(entry in ayl[name] for ayl in active_yaml_lists)
+                ]
+                list_for_new_specs = active_yaml_lists[0].setdefault(name, [])
+                list_for_new_specs[:] = list_for_new_specs + new_specs
+            # put the new user specs in the YAML.
+            # This can be done directly because there can't be multiple definitions
+            # nor when clauses for `specs` list.
+            yaml_spec_list = yaml_dict.setdefault(user_speclist_name, [])
+            yaml_spec_list[:] = self.user_specs.yaml_list
         # Construct YAML representation of view
         default_name = default_view_name
         if self.views and len(self.views) == 1 and default_name in self.views:
