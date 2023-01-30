@@ -666,7 +666,7 @@ class Environment(object):
             with fs.open_if_filename(init_file) as f:
                 if hasattr(f, "name") and f.name.endswith(".lock"):
                     self._read_manifest(default_manifest_yaml())
-                    self._read_lockfile(f)
+                    self._read_lockfile(f)["_meta"]["lockfile-version"]
                     self._set_user_specs_from_lockfile()
                 else:
                     self._read_manifest(f, raw_yaml=default_manifest_yaml())
@@ -690,7 +690,7 @@ class Environment(object):
         # the manifest file
 
     def __reduce__(self):
-        return _create_environment, (self.path, self.init_file, self.with_view, self.keep_relative)
+        return _create_environment, (self.path, self.init_file, self.with_view, self.keep_relative, self.include_concrete)
 
     def _rewrite_relative_paths_on_relocation(self, init_file_dir):
         """When initializing the environment from a manifest file and we plan
@@ -732,7 +732,7 @@ class Environment(object):
 
         if os.path.exists(self.lock_path):
             with open(self.lock_path) as f:
-                read_lock_version = self._read_lockfile(f)
+                read_lock_version = self._read_lockfile(f)["_meta"]["lockfile-version"]
             if default_manifest:
                 # No manifest, set user specs from lockfile
                 self._set_user_specs_from_lockfile()
@@ -792,6 +792,10 @@ class Environment(object):
         else:
             self.views = {}
 
+        # Extract and process include_concrete
+        # Grab include_concrete from yaml
+        # Grabs specs and put in memory (backwards!)
+
         # Retrieve the current concretization strategy
         configuration = config_dict(self.yaml)
 
@@ -810,6 +814,10 @@ class Environment(object):
     @property
     def user_specs(self):
         return self.spec_lists[user_speclist_name]
+
+    @property
+    def included_specs(self):
+        return self.included_specs
 
     def _set_user_specs_from_lockfile(self):
         """Copy user_specs from a read-in lockfile."""
@@ -913,7 +921,7 @@ class Environment(object):
             self._repo = make_repo_path(self.repos_path)
         return self._repo
 
-    def included_concrete_config_scopes(self):
+    def included_concrete_envs(self):
         """List of included environments that will be linked
 
         Absolute paths to the linked environments in order from highest
@@ -926,7 +934,6 @@ class Environment(object):
         # loop bckwards
         include_path = []
         for env_name in self.include_concrete:
-            print("env name:", env_name)
 
             if not exists(env_name):
                 tty.die("'%s': unable to find file" % env_name)
@@ -937,9 +944,29 @@ class Environment(object):
             env.concretize(force=False)
             env.write()
 
-            # Link to each environment
-
         return include_path
+
+    def include_concrete_specs(self):
+        root_hash = set()
+        lockfile_meta = None
+        self.included_specs = list()
+
+        for env_name in self.include_concrete:
+
+            env = Environment(root(env_name))
+
+            with open(env.lock_path) as f:
+                lockfile_as_dict = env._read_lockfile(f)
+
+            if lockfile_meta is None:
+                lockfile_meta = lockfile_as_dict["_meta"]
+            elif lockfile_meta != lockfile_as_dict["_meta"]:
+                tty.die("All lockfile _meta values must match")
+
+            for root_dict in lockfile_as_dict["roots"]:
+                if root_dict["hash"] not in root_hash:
+                    self.included_specs.append(root_dict["spec"])
+                root_hash.add(root_dict["hash"])
 
     def included_config_scopes(self):
         """List of included configuration scopes from the environment.
@@ -1987,7 +2014,7 @@ class Environment(object):
         """Read a lockfile from a file or from a raw string."""
         lockfile_dict = sjson.load(file_or_json)
         self._read_lockfile_dict(lockfile_dict)
-        return lockfile_dict["_meta"]["lockfile-version"]
+        return lockfile_dict#["_meta"]["lockfile-version"]
 
     def _read_lockfile_dict(self, d):
         """Read a lockfile dictionary into this environment."""
@@ -2175,10 +2202,11 @@ class Environment(object):
             view = False
         yaml_dict["view"] = view
 
-        # Rikki Here
-
         if self.include_concrete:
-            yaml_dict["include_concrete"] = self.included_concrete_config_scopes()
+            # print("self.spec_lists[\"specs\"]:", self.spec_lists["specs"])
+            # print("type:", type(self.spec_lists["specs"]))
+            self.include_concrete_specs()
+            yaml_dict["include_concrete"] = self.included_concrete_envs()
 
         if self.dev_specs:
             # Remove entries that are mirroring defaults
