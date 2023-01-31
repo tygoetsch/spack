@@ -651,7 +651,7 @@ class Environment(object):
         self.with_view = with_view
         self.keep_relative = keep_relative
         self.include_concrete = include_concrete
-
+        self.included_specs = list()
         self.txlock = lk.Lock(self._transaction_lock_path)
 
         # This attribute will be set properly from configuration
@@ -795,6 +795,8 @@ class Environment(object):
         # Extract and process include_concrete
         # Grab include_concrete from yaml
         # Grabs specs and put in memory (backwards!)
+        if self.include_concrete:
+            self.include_concrete_specs()
 
         # Retrieve the current concretization strategy
         configuration = config_dict(self.yaml)
@@ -814,10 +816,6 @@ class Environment(object):
     @property
     def user_specs(self):
         return self.spec_lists[user_speclist_name]
-
-    @property
-    def included_specs(self):
-        return self.included_specs
 
     def _set_user_specs_from_lockfile(self):
         """Copy user_specs from a read-in lockfile."""
@@ -966,7 +964,7 @@ class Environment(object):
             for root_dict in lockfile_as_dict["roots"]:
                 if root_dict["hash"] not in root_hash:
                     self.included_specs.append(root_dict["spec"])
-                root_hash.add(root_dict["hash"])
+                    root_hash.add(root_dict["hash"])
 
     def included_config_scopes(self):
         """List of included configuration scopes from the environment.
@@ -2147,45 +2145,45 @@ class Environment(object):
         # invalidate _repo cache
         self._repo = None
 
-        if not self.include_concrete:
-            # put any changes in the definitions in the YAML
-            for name, speclist in self.spec_lists.items():
-                if name == user_speclist_name:
-                    # The primary list is handled differently
-                    continue
+        # if not self.include_concrete:
+        # put any changes in the definitions in the YAML
+        for name, speclist in self.spec_lists.items():
+            if name == user_speclist_name:
+                # The primary list is handled differently
+                continue
 
-                active_yaml_lists = [
-                    x
-                    for x in yaml_dict.get("definitions", [])
-                    if name in x and _eval_conditional(x.get("when", "True"))
+            active_yaml_lists = [
+                x
+                for x in yaml_dict.get("definitions", [])
+                if name in x and _eval_conditional(x.get("when", "True"))
+            ]
+
+            # Remove any specs in yaml that are not in internal representation
+            for ayl in active_yaml_lists:
+                # If it's not a string, it's a matrix. Those can't have changed
+                # If it is a string that starts with '$', it's a reference.
+                # Those also can't have changed.
+                ayl[name][:] = [
+                    s
+                    for s in ayl.setdefault(name, [])
+                    if ((not isinstance(s, str)) or s.startswith("$") or
+                        Spec(s) in speclist.specs)
                 ]
 
-                # Remove any specs in yaml that are not in internal representation
-                for ayl in active_yaml_lists:
-                    # If it's not a string, it's a matrix. Those can't have changed
-                    # If it is a string that starts with '$', it's a reference.
-                    # Those also can't have changed.
-                    ayl[name][:] = [
-                        s
-                        for s in ayl.setdefault(name, [])
-                        if ((not isinstance(s, str)) or s.startswith("$") or
-                            Spec(s) in speclist.specs)
-                    ]
-
-                # Put the new specs into the first active list from the yaml
-                new_specs = [
-                    entry
-                    for entry in speclist.yaml_list
-                    if isinstance(entry, str)
-                    and not any(entry in ayl[name] for ayl in active_yaml_lists)
-                ]
-                list_for_new_specs = active_yaml_lists[0].setdefault(name, [])
-                list_for_new_specs[:] = list_for_new_specs + new_specs
-            # put the new user specs in the YAML.
-            # This can be done directly because there can't be multiple definitions
-            # nor when clauses for `specs` list.
-            yaml_spec_list = yaml_dict.setdefault(user_speclist_name, [])
-            yaml_spec_list[:] = self.user_specs.yaml_list
+            # Put the new specs into the first active list from the yaml
+            new_specs = [
+                entry
+                for entry in speclist.yaml_list
+                if isinstance(entry, str)
+                and not any(entry in ayl[name] for ayl in active_yaml_lists)
+            ]
+            list_for_new_specs = active_yaml_lists[0].setdefault(name, [])
+            list_for_new_specs[:] = list_for_new_specs + new_specs
+        # put the new user specs in the YAML.
+        # This can be done directly because there can't be multiple definitions
+        # nor when clauses for `specs` list.
+        yaml_spec_list = yaml_dict.setdefault(user_speclist_name, [])
+        yaml_spec_list[:] = self.user_specs.yaml_list
         # Construct YAML representation of view
         default_name = default_view_name
         if self.views and len(self.views) == 1 and default_name in self.views:
@@ -2203,8 +2201,6 @@ class Environment(object):
         yaml_dict["view"] = view
 
         if self.include_concrete:
-            # print("self.spec_lists[\"specs\"]:", self.spec_lists["specs"])
-            # print("type:", type(self.spec_lists["specs"]))
             self.include_concrete_specs()
             yaml_dict["include_concrete"] = self.included_concrete_envs()
 
