@@ -111,6 +111,8 @@ user_speclist_name = "specs"
 default_view_name = "default"
 # Default behavior to link all packages into views (vs. only root packages)
 default_view_link = "all"
+# The name for any included concrete specs
+included_concrete_name = "include_concrete"
 
 
 def installed_specs():
@@ -651,7 +653,6 @@ class Environment(object):
         self.with_view = with_view
         self.keep_relative = keep_relative
         self.include_concrete = include_concrete
-        self.included_specs = list()
         self.txlock = lk.Lock(self._transaction_lock_path)
 
         # This attribute will be set properly from configuration
@@ -690,7 +691,11 @@ class Environment(object):
         # the manifest file
 
     def __reduce__(self):
-        return _create_environment, (self.path, self.init_file, self.with_view, self.keep_relative, self.include_concrete)
+        return _create_environment, (self.path,
+                                     self.init_file,
+                                     self.with_view,
+                                     self.keep_relative,
+                                     self.include_concrete)
 
     def _rewrite_relative_paths_on_relocation(self, init_file_dir):
         """When initializing the environment from a manifest file and we plan
@@ -795,7 +800,10 @@ class Environment(object):
         # Extract and process include_concrete
         # Grab include_concrete from yaml
         # Grabs specs and put in memory (backwards!)
+        if not self.include_concrete:
+            self.include_concrete = config_dict(self.yaml).get(included_concrete_name, [])
         if self.include_concrete:
+            self.include_concrete_envs()
             self.include_concrete_specs()
 
         # Retrieve the current concretization strategy
@@ -816,6 +824,10 @@ class Environment(object):
     @property
     def user_specs(self):
         return self.spec_lists[user_speclist_name]
+
+    @property
+    def included_concrete_specs(self):
+        return self.included_specs
 
     def _set_user_specs_from_lockfile(self):
         """Copy user_specs from a read-in lockfile."""
@@ -919,39 +931,44 @@ class Environment(object):
             self._repo = make_repo_path(self.repos_path)
         return self._repo
 
-    def included_concrete_envs(self):
-        """List of included environments that will be linked
-
-        Absolute paths to the linked environments in order from highest
-        to lowerest precedence over later ones.
+    def include_concrete_envs(self):
+        """ Write something
         """
 
-        # load paths to environment via 'include_concrete'
-        # include_concretes = config_dict(self.yaml).get("include_concrete", [])
-
-        # loop bckwards
         include_path = []
         for env_name in self.include_concrete:
 
-            if not exists(env_name):
-                tty.die("'%s': unable to find file" % env_name)
+            if os.sep in env_name:
+                env_path = env_name
+            elif exists(env_name):
+                env_path = (root(env_name))
+            else:
+                tty.die("'%s': unable to find env" % env_name)
 
-            include_path.append(root(env_name))
+            if not is_env_dir(env_path):
+                tty.die("'%s': unable to find env path" % env_path)
 
-            env = Environment(root(env_name))
+            include_path.append(env_path)
+
+            env = Environment(env_path)
             env.concretize(force=False)
             env.write()
 
         return include_path
 
     def include_concrete_specs(self):
+        """ Write something
+        """
         root_hash = set()
         lockfile_meta = None
-        self.included_specs = list()
+        self.included_specs = SpecList()
 
         for env_name in self.include_concrete:
 
-            env = Environment(root(env_name))
+            if os.sep in env_name:
+                env = Environment(env_name)
+            else:
+                env = Environment(root(env_name))
 
             with open(env.lock_path) as f:
                 lockfile_as_dict = env._read_lockfile(f)
@@ -963,7 +980,7 @@ class Environment(object):
 
             for root_dict in lockfile_as_dict["roots"]:
                 if root_dict["hash"] not in root_hash:
-                    self.included_specs.append(root_dict["spec"])
+                    self.included_specs.add(root_dict["spec"])
                     root_hash.add(root_dict["hash"])
 
     def included_config_scopes(self):
@@ -2012,7 +2029,7 @@ class Environment(object):
         """Read a lockfile from a file or from a raw string."""
         lockfile_dict = sjson.load(file_or_json)
         self._read_lockfile_dict(lockfile_dict)
-        return lockfile_dict#["_meta"]["lockfile-version"]
+        return lockfile_dict
 
     def _read_lockfile_dict(self, d):
         """Read a lockfile dictionary into this environment."""
@@ -2201,8 +2218,7 @@ class Environment(object):
         yaml_dict["view"] = view
 
         if self.include_concrete:
-            self.include_concrete_specs()
-            yaml_dict["include_concrete"] = self.included_concrete_envs()
+            yaml_dict["include_concrete"] = self.include_concrete_envs()
 
         if self.dev_specs:
             # Remove entries that are mirroring defaults
