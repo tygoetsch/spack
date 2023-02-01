@@ -700,11 +700,13 @@ class Environment(object):
         # the manifest file
 
     def __reduce__(self):
-        return _create_environment, (self.path,
-                                     self.init_file,
-                                     self.with_view,
-                                     self.keep_relative,
-                                     self.include_concrete)
+        return _create_environment, (
+            self.path,
+            self.init_file,
+            self.with_view,
+            self.keep_relative,
+            self.include_concrete,
+        )
 
     def _rewrite_relative_paths_on_relocation(self, init_file_dir):
         """When initializing the environment from a manifest file and we plan
@@ -941,8 +943,7 @@ class Environment(object):
         return self._repo
 
     def include_concrete_envs(self):
-        """ Write something
-        """
+        """Write something"""
 
         include_path = []
         for env_name in self.include_concrete:
@@ -950,7 +951,7 @@ class Environment(object):
             if os.sep in env_name:
                 env_path = env_name
             elif exists(env_name):
-                env_path = (root(env_name))
+                env_path = root(env_name)
             else:
                 tty.die("'%s': unable to find env" % env_name)
 
@@ -966,8 +967,7 @@ class Environment(object):
         return include_path
 
     def include_concrete_specs(self):
-        """ Write something
-        """
+        """Write something"""
         root_hash = set()
         lockfile_meta = None
         self.included_specs = SpecList()
@@ -2204,8 +2204,7 @@ class Environment(object):
                 ayl[name][:] = [
                     s
                     for s in ayl.setdefault(name, [])
-                    if ((not isinstance(s, str)) or s.startswith("$") or
-                        Spec(s) in speclist.specs)
+                    if ((not isinstance(s, str)) or s.startswith("$") or Spec(s) in speclist.specs)
                 ]
 
             # Put the new specs into the first active list from the yaml
