@@ -1003,8 +1003,9 @@ class Environment(object):
             # Copy unique concrete specs from env
             for concrete_spec in lockfile_as_dict["concrete_specs"]:
                 if concrete_spec not in concrete_hash:
-                    self.included_concrete_info[env_path].update({"concrete_specs":
-                                                          lockfile_as_dict["concrete_specs"]})
+                    self.included_concrete_info[env_path].update(
+                        {"concrete_specs": lockfile_as_dict["concrete_specs"]}
+                    )
                     concrete_hash.add(concrete_spec)
 
     def included_config_scopes(self):
