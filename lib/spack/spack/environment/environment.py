@@ -969,28 +969,43 @@ class Environment(object):
     def include_concrete_specs(self):
         """Write something"""
         root_hash = set()
+        concrete_hash = set()
         lockfile_meta = None
         self.included_specs = SpecList()
+        self.included_concrete_info = dict()
 
         for env_name in self.include_concrete:
 
             if os.sep in env_name:
-                env = Environment(env_name)
+                env_path = env_name
             else:
-                env = Environment(root(env_name))
+                env_path = root(env_name)
+
+            env = Environment(env_path)
 
             with open(env.lock_path) as f:
                 lockfile_as_dict = env._read_lockfile(f)
 
+            # Lockfile_meta must match each env
             if lockfile_meta is None:
                 lockfile_meta = lockfile_as_dict["_meta"]
             elif lockfile_meta != lockfile_as_dict["_meta"]:
                 tty.die("All lockfile _meta values must match")
 
+            # Copy unique root specs from env
+            self.included_concrete_info[env_path] = {"roots": []}
             for root_dict in lockfile_as_dict["roots"]:
                 if root_dict["hash"] not in root_hash:
+                    self.included_concrete_info[env_path]["roots"].append(root_dict)
                     self.included_specs.add(root_dict["spec"])
                     root_hash.add(root_dict["hash"])
+
+            # Copy unique concrete specs from env
+            for concrete_spec in lockfile_as_dict["concrete_specs"]:
+                if concrete_spec not in concrete_hash:
+                    self.included_concrete_info[env_path].update({"concrete_specs":
+                                                          lockfile_as_dict["concrete_specs"]})
+                    concrete_hash.add(concrete_spec)
 
     def included_config_scopes(self):
         """List of included configuration scopes from the environment.
@@ -2032,6 +2047,9 @@ class Environment(object):
             "concrete_specs": concrete_specs,
         }
 
+        if self.include_concrete:
+            data.update({"include": self.included_concrete_info})
+
         return data
 
     def _read_lockfile(self, file_or_json):
@@ -2133,7 +2151,7 @@ class Environment(object):
         yaml_dict = config_dict(self.yaml)
         raw_yaml_dict = config_dict(self.raw_yaml)
 
-        if self.specs_by_hash:
+        if self.specs_by_hash or self.include_concrete:
             # ensure the prefix/.env directory exists
             fs.mkdirp(self.env_subdir_path)
 
