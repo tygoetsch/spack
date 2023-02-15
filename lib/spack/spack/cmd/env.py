@@ -383,6 +383,18 @@ def env_remove(args):
         env = ev.read(env_name)
         read_envs.append(env)
 
+    # loop through all envs
+    for name in ev.all_environment_names():
+        eviron = ev.Environment(ev.root(name))
+        # if env has include_concrete and root(env_name) is there
+        if ev.root(env_name) in eviron.include_concrete:
+            # Die: cannot remove env since it is linked to -- env
+            tty.die("Will not remove environment \"%s\" because it is linked to environment \"%s\"" % (env_name, name))
+
+    # print("env.is_included", env.is_included)
+    # if env.is_included:
+    #     tty.die("Will not remove environment \"%s\" because it is linked to environment \"%s\"" % (env_name, env.is_included))
+
     if not args.yes_to_all:
         answer = tty.get_yes_or_no(
             "Really remove %s %s?"

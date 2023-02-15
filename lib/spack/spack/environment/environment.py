@@ -668,6 +668,8 @@ class Environment(object):
         # during concretization
         self.unify = None
         self.clear()
+        # Remove later if I cannot get this working
+        self.is_included = False #[]
 
         if init_file:
             # If we are creating the environment from an init file, we don't
@@ -813,6 +815,7 @@ class Environment(object):
         # Grabs specs and put in memory (backwards!)
         if not self.include_concrete:
             self.include_concrete = config_dict(self.yaml).get(included_concrete_name, [])
+
         if self.include_concrete:
             self.include_concrete_envs()
             self.include_concrete_specs()
@@ -966,6 +969,8 @@ class Environment(object):
             include_path.append(env_path)
 
             env = Environment(env_path)
+            # Remove later if I cannot get this working
+            env.is_included = True #.append(self.name)
             env.concretize(force=False)
             env.write()
 
@@ -973,6 +978,7 @@ class Environment(object):
 
     def include_concrete_specs(self):
         """Write something"""
+
         root_hash = set()
         concrete_hash = set()
         lockfile_meta = None
@@ -1234,8 +1240,8 @@ class Environment(object):
 
     def remove(self, query_spec, list_name=user_speclist_name, force=False):
         """Remove specs from an environment that match a query_spec"""
-        query_spec = Spec(query_spec)
 
+        query_spec = Spec(query_spec)
         list_to_change = self.spec_lists[list_name]
         matches = []
 
@@ -2213,7 +2219,6 @@ class Environment(object):
         # invalidate _repo cache
         self._repo = None
 
-        # if not self.include_concrete:
         # put any changes in the definitions in the YAML
         for name, speclist in self.spec_lists.items():
             if name == user_speclist_name:
