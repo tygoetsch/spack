@@ -669,7 +669,7 @@ class Environment(object):
         self.unify = None
         self.clear()
         # Remove later if I cannot get this working
-        self.is_included = False #[]
+        self.is_included = False  # []
 
         if init_file:
             # If we are creating the environment from an init file, we don't
@@ -970,7 +970,7 @@ class Environment(object):
 
             env = Environment(env_path)
             # Remove later if I cannot get this working
-            env.is_included = True #.append(self.name)
+            env.is_included = True  # .append(self.name)
             env.concretize(force=False)
             env.write()
 
