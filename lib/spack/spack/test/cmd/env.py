@@ -963,9 +963,6 @@ packages:
     assert any([x.satisfies("libelf@0.8.10") for x in e._get_environment_specs()])
 
 
-# ADD TEST FOR INCLUDIN CONCRETE
-
-
 def test_bad_env_yaml_format(tmpdir):
     filename = str(tmpdir.join("spack.yaml"))
     with open(filename, "w") as f:
@@ -1266,12 +1263,50 @@ def test_env_without_view_install(tmpdir, mock_stage, mock_fetch, install_mocker
 
 
 # ADD TEST CREATE ENV --INCLUDE-CONCRETE WITH ENV NAME
+def test_env_include_concrete_env(tmpdir, mock_stage):
+    # Words
+    e1 = ev.create("test")
+    e1.add("mpileaks")
+
+    env = ev.create("--include-concrete", "test", "include_test")
+
+    # assert "include_concrete" is in yaml file
+    # assert path to test env is under "include_concrete"
 
 
 # ADD TEST CREATE ENV --INCLUDE-CONCRETE WITH ENV PATH
+def test_env_include_concrete_env_path(tmpdir, mock_stage):
+    # Words
+    e1 = ev.create("test")
+    e1.add("mpileaks")
+
+    env = ev.create("--include-concrete", ev.root(e1), "include_test")
+
+    # assert "include_concrete" is in yaml file
+    # assert path to test env is under "include_concrete"
 
 
 # ADD TEST CREATE ENV --INCLUDE-CONCRETE WITH NONEXISTANT ENV (ERROR)
+def test_env_include_nonexistant_concrete_env(tmpdir, mock_stage):
+    # Words
+    ev.create("--include-concrete", "test", "include_test")
+        # Should cause error
+
+
+# ADD TEST CREATE ENV --INCLUDE-CONCRETE WITH MULTIPLE ENVS
+def test_env_include_multiple_concrete_envs(tmpdir, mock_stage):
+    # Words
+    e1 = ev.create("test1")
+    e1.add("mpileaks@2.1")
+
+    e2 = ev.create("test2")
+    e2.add("mpileaks@2.2")
+
+    env = ev.create("--include-concrete", "test1", "--include-concrete", "test2", "include_test")
+
+    # assert "include_concrete" is in yaml file
+    # assert path to test1 env is under "include_concrete" in position 0
+    # assert path to test2 env is under "include_concrete" in position 1
 
 
 def test_env_config_view_default(tmpdir, mock_stage, mock_fetch, install_mockery):

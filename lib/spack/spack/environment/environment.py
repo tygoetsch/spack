@@ -668,8 +668,6 @@ class Environment(object):
         # during concretization
         self.unify = None
         self.clear()
-        # Remove later if I cannot get this working
-        self.is_included = False  # []
 
         if init_file:
             # If we are creating the environment from an init file, we don't
@@ -816,9 +814,12 @@ class Environment(object):
         if not self.include_concrete:
             self.include_concrete = config_dict(self.yaml).get(included_concrete_name, [])
 
-        if self.include_concrete:
-            self.include_concrete_envs()
-            self.include_concrete_specs()
+        try:
+            if self.include_concrete:
+                self.include_concrete_envs()
+                self.include_concrete_specs()
+        except:
+            raise SpackEnvironmentError("SOMETHING")
 
         # Retrieve the current concretization strategy
         configuration = config_dict(self.yaml)
@@ -961,16 +962,14 @@ class Environment(object):
             elif exists(env_name):
                 env_path = root(env_name)
             else:
-                tty.die("'%s': unable to find env" % env_name)
+                raise SpackEnvironmentError("'%s': unable to find env" % env_name)
 
             if not is_env_dir(env_path):
-                tty.die("'%s': unable to find env path" % env_path)
+                raise SpackEnvironmentError("'%s': unable to find env path" % env_path)
 
             include_path.append(env_path)
 
             env = Environment(env_path)
-            # Remove later if I cannot get this working
-            env.is_included = True  # .append(self.name)
             env.concretize(force=False)
             env.write()
 
