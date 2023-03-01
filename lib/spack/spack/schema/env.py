@@ -28,12 +28,7 @@ spec_list_schema = {
                 "properties": {
                     "matrix": {
                         "type": "array",
-                        "items": {
-                            "type": "array",
-                            "items": {
-                                "type": "string",
-                            },
-                        },
+                        "items": {"type": "array", "items": {"type": "string"}},
                     },
                     "exclude": {"type": "array", "items": {"type": "string"}},
                 },
@@ -83,7 +78,7 @@ schema = {
                                     "spec": {"type": "string"},
                                     "path": {"type": "string"},
                                 },
-                            },
+                            }
                         },
                     },
                     "definitions": {

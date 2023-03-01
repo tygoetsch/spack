@@ -68,12 +68,12 @@ class Wrf(Package):
 
     homepage = "https://www.mmm.ucar.edu/weather-research-and-forecasting-model"
     url = "https://github.com/wrf-model/WRF/archive/v4.2.tar.gz"
-    maintainers = ["MichaelLaufer", "ptooley"]
+    maintainers("MichaelLaufer", "ptooley")
     tags = ["windows"]
 
     version(
         "4.4.2",
-        sha256="5d6237f1500c44a33626362936ba0a4388360c5070d9d53262e5a950c586da85",
+        sha256="488b992e8e994637c58e3c69e869ad05acfe79419c01fbef6ade1f624e50dc3a",
         url="https://github.com/wrf-model/WRF/releases/download/v4.4.2/v4.4.2.tar.gz",
     )
     version(
@@ -93,11 +93,7 @@ class Wrf(Package):
         url="https://github.com/wrf-model/WRF/archive/V3.9.1.1.tar.gz",
     )
 
-    variant(
-        "build_type",
-        default="dmpar",
-        values=("serial", "smpar", "dmpar", "dm+sm"),
-    )
+    variant("build_type", default="dmpar", values=("serial", "smpar", "dmpar", "dm+sm"))
     variant(
         "nesting",
         default="basic",
@@ -121,12 +117,9 @@ class Wrf(Package):
             "em_scm_xy",
         ),
     )
-    variant(
-        "pnetcdf",
-        default=True,
-        description="Parallel IO support through Pnetcdf library",
-    )
+    variant("pnetcdf", default=True, description="Parallel IO support through Pnetcdf library")
     variant("chem", default=False, description="Enable WRF-Chem", when="@4:")
+    variant("netcdf_classic", default=False, description="Use NetCDF without HDF5 compression")
 
     patch("patches/3.9/netcdf_backport.patch", when="@3.9.1.1")
     patch("patches/3.9/tirpc_detect.patch", when="@3.9.1.1")
@@ -228,13 +221,18 @@ class Wrf(Package):
         # Add WRF-Chem module
         if "+chem" in self.spec:
             env.set("WRF_CHEM", 1)
+        if "+netcdf_classic" in self.spec:
+            env.set("NETCDF_classic", 1)
         # This gets used via the applied patch files
         env.set("NETCDFF", self.spec["netcdf-fortran"].prefix)
         env.set("PHDF5", self.spec["hdf5"].prefix)
         env.set("JASPERINC", self.spec["jasper"].prefix.include)
         env.set("JASPERLIB", self.spec["jasper"].prefix.lib)
 
-        if self.spec.satisfies("%gcc@10:"):
+        # These flags should be used also in v3, but FCFLAGS/FFLAGS aren't used
+        # consistently in that version of WRF, so we have to force them through
+        # `flag_handler` below.
+        if self.spec.satisfies("@4.0: %gcc@10:"):
             args = "-w -O2 -fallow-argument-mismatch -fallow-invalid-boz"
             env.set("FCFLAGS", args)
             env.set("FFLAGS", args)
@@ -244,6 +242,13 @@ class Wrf(Package):
             env.set("HDF5", self.spec["hdf5"].prefix)
             env.prepend_path("PATH", ancestor(self.compiler.cc))
 
+    def flag_handler(self, name, flags):
+        # Same flags as FCFLAGS/FFLAGS above, but forced through the compiler
+        # wrapper when compiling v3.9.1.1.
+        if self.spec.satisfies("@3.9.1.1 %gcc@10:") and name == "fflags":
+            flags.extend(["-w", "-O2", "-fallow-argument-mismatch", "-fallow-invalid-boz"])
+        return (flags, None, None)
+
     def patch(self):
         # Let's not assume csh is intalled in bin
         files = glob.glob("*.csh")
@@ -252,7 +257,6 @@ class Wrf(Package):
         filter_file("^#!/bin/csh", "#!/usr/bin/env csh", *files)
 
     def answer_configure_question(self, outputbuf):
-
         # Platform options question:
         if "Please select from among the following" in outputbuf:
             options = collect_platform_options(outputbuf)
@@ -320,7 +324,6 @@ class Wrf(Package):
             config.filter("^DM_CC.*mpicc", "DM_CC = {0}".format(self.spec["mpi"].mpicc))
 
     def configure(self, spec, prefix):
-
         # Remove broken default options...
         self.do_configure_fixup()
 
@@ -400,7 +403,6 @@ class Wrf(Package):
         return False
 
     def build(self, spec, prefix):
-
         result = self.run_compile_script()
 
         if not result:
