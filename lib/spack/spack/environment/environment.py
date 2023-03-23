@@ -999,7 +999,6 @@ class Environment(object):
         self.included_concrete_specs = dict()
 
         for env_name in self.include_concrete:
-
             if os.sep in env_name:
                 env_path = env_name
             elif exists(env_name):
@@ -2122,7 +2121,9 @@ class Environment(object):
         for spec_dag_hash in self.concretized_order:
             self.specs_by_hash[spec_dag_hash] = first_seen[spec_dag_hash]
 
-        first_seen = self.filter_specs(reader, included_json_specs_by_hash, self.included_concretized_order)
+        first_seen = self.filter_specs(
+            reader, included_json_specs_by_hash, self.included_concretized_order
+        )
         for spec_dag_hash in self.included_concretized_order:
             self.included_specs_by_hash[spec_dag_hash] = first_seen[spec_dag_hash]
 
@@ -2167,9 +2168,7 @@ class Environment(object):
         # Now make sure concretized_order and our internal specs dict
         # contains the keys used by modern spack (i.e. the dag_hash
         # that includes build deps and package hash).
-        order_concretized = [
-            specs_by_hash[h_key].dag_hash() for h_key in order_concretized
-        ]
+        order_concretized = [specs_by_hash[h_key].dag_hash() for h_key in order_concretized]
 
         return first_seen
 

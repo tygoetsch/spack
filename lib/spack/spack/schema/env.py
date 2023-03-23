@@ -56,11 +56,7 @@ schema = {
                 spack.schema.merged.properties,
                 # extra environment schema properties
                 {
-                    "include": {
-                        "type": "array",
-                        "default": [],
-                        "items": {"type": "string"},
-                    },
+                    "include": {"type": "array", "default": [], "items": {"type": "string"}},
                     "include_concrete": {
                         "type": "array",
                         "default": [],
