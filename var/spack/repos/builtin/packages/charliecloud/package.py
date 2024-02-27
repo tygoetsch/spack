@@ -19,7 +19,12 @@ class Charliecloud(AutotoolsPackage):
     license("Apache-2.0")
 
     version("master", branch="master")
-    version("0.35", sha256="042f5be5ed8eda95f45230b4647510780142a50adb4e748be57e8dd8926b310e")
+    version("0.36", sha256="b6b1a085d8ff82abc6d625ab990af3925c84fa08ec837828b383f329bd0b8e72")
+    version(
+        "0.35", 
+        deprecated=True,
+        sha256="042f5be5ed8eda95f45230b4647510780142a50adb4e748be57e8dd8926b310e",
+    )
     version(
         "0.34",
         deprecated=True,
